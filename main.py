@@ -241,7 +241,7 @@ class StudentTrackerApp:
                 da_tim_thay = True
                 
         if not da_tim_thay:
-            print(f"\nKhông tìm thấy học sinh nào tên là '{ten_can_tim}'.")
+            print(f"\nKhông tìm thấy học sinh nào phù hợp với '{ten_can_tim}'.")
 
     def sua_hoc_sinh(self):
         danh_sach = self.db.lay_danh_sach()

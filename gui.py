@@ -195,7 +195,7 @@ class ModernStudentTrackerGUI:
         btn_lam_moi.grid(row=1, column=1, sticky="ew", padx=5, pady=5)
 
         btn_api = create_button(btn_frame, "TẢI DỮ LIỆU TỪ API", self.colors["warning"], self.tai_du_lieu_tu_api)
-    btn_api.config(fg=self.colors["text"])
+        btn_api.config(fg=self.colors["text"])
         btn_api.grid(row=2, column=0, columnspan=2, sticky="ew", padx=5, pady=5)
         
         btn_frame.columnconfigure(0, weight=1)
@@ -238,6 +238,7 @@ class ModernStudentTrackerGUI:
         self.tree.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
 
         self.tree.bind("<ButtonRelease-1>", self.chon_dong_tren_bang)
+
     def tai_du_lieu_len_bang(self, danh_sach_loc=None):
         for row in self.tree.get_children():
             self.tree.delete(row)
