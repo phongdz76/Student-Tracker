@@ -1,7 +1,5 @@
 __pycache__/
 *.pyc
-hoc_sinh.db
 build/
 dist/
 *.spec
-build.bat
