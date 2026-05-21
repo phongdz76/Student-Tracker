@@ -6,6 +6,15 @@ import json
 import sqlite3
 import os
 import random
+try:
+    from playsound import playsound
+except Exception:
+    playsound = None
+
+try:
+    import winsound
+except Exception:
+    winsound = None
 
 class Student:
     def __init__(self, ten, tuoi_lop, toan, van, anh, student_id=None):
@@ -105,6 +114,11 @@ class ModernStudentTrackerGUI:
             "text": "#2c3e50",
             "text_light": "#7f8c8d"
         }
+
+        self.sound_files = {
+            "success": self._tim_tep_am_thanh("ding.wav"),
+            "delete": self._tim_tep_am_thanh("Windows Critical Stop.wav")
+        }
         
         self.root.configure(bg=self.colors["bg"])
         
@@ -145,6 +159,45 @@ class ModernStudentTrackerGUI:
                         background=self.colors["panel"], 
                         foreground=self.colors["text"], 
                         font=("Segoe UI", 11))
+        style.configure("Custom.TCombobox",
+                fieldbackground="white",
+                background="white",
+                foreground="#000000")
+        style.map("Custom.TCombobox",
+              fieldbackground=[("readonly", "white")],
+              background=[("readonly", "white")],
+              foreground=[("readonly", "#000000")],
+              selectbackground=[("readonly", "white")],
+              selectforeground=[("readonly", "#000000")])
+
+    def _tim_tep_am_thanh(self, ten_tep):
+        thu_muc_win = os.environ.get("WINDIR", "C:\\Windows")
+        duong_dan = os.path.join(thu_muc_win, "Media", ten_tep)
+        return duong_dan if os.path.exists(duong_dan) else None
+
+    def _phat_am_thanh(self, loai):
+        if playsound is None and winsound is None:
+            return
+
+        duong_dan = self.sound_files.get(loai)
+
+        def _play():
+            if playsound and duong_dan and os.path.exists(duong_dan):
+                try:
+                    playsound(duong_dan)
+                    return
+                except Exception:
+                    pass
+            if winsound:
+                try:
+                    if loai == "delete":
+                        winsound.MessageBeep(winsound.MB_ICONHAND)
+                    else:
+                        winsound.MessageBeep(winsound.MB_OK)
+                except Exception:
+                    pass
+
+        threading.Thread(target=_play, daemon=True).start()
 
     def tao_khung_nhap_lieu(self):
         title_lbl = tk.Label(self.left_frame, text="THÔNG TIN HỌC SINH", 
@@ -156,9 +209,10 @@ class ModernStudentTrackerGUI:
         form_frame.pack(fill=tk.BOTH, expand=True, padx=20)
 
         self.entries = {}
+        lop_options = [f"Lớp {i}" for i in range(1, 13)]
         fields = [
             ("Tên học sinh:", "ten"),
-            ("Tuổi/Lớp (vd 10A1):", "tuoi_lop"),
+            ("Lớp:", "tuoi_lop"),
             ("Điểm Toán:", "toan"),
             ("Điểm Văn:", "van"),
             ("Điểm Anh:", "anh")
@@ -168,7 +222,10 @@ class ModernStudentTrackerGUI:
             lbl = tk.Label(form_frame, text=label_text, bg=self.colors["panel"], fg=self.colors["text"], font=("Segoe UI", 10, "bold"))
             lbl.grid(row=i*2, column=0, sticky=tk.W, pady=(10, 2))
             
-            ent = ttk.Entry(form_frame, font=("Segoe UI", 11), width=30)
+            if key == "tuoi_lop":
+                ent = ttk.Combobox(form_frame, font=("Segoe UI", 11), width=28, values=lop_options, state="readonly", style="Custom.TCombobox")
+            else:
+                ent = ttk.Entry(form_frame, font=("Segoe UI", 11), width=30)
             ent.grid(row=i*2+1, column=0, sticky=tk.W, ipady=5)
             self.entries[key] = ent
 
@@ -258,55 +315,14 @@ class ModernStudentTrackerGUI:
         self.selected_id = None
 
     def lay_du_lieu_tu_form(self):
-        import re
         ten = self.entries["ten"].get().strip()
         tuoi_lop_raw = self.entries["tuoi_lop"].get().strip()
         
         if not ten or not tuoi_lop_raw:
-            messagebox.showerror("Lỗi", "Tên và Tuổi/Lớp không được để trống!")
+            messagebox.showerror("Lỗi", "Tên và Lớp không được để trống!")
             return None
-            
-        tuoi_lop_hop_le = ""
-        if tuoi_lop_raw.isdigit():
-            gia_tri_int = int(tuoi_lop_raw)
-            if 1 <= gia_tri_int <= 5:
-                tuoi_lop_hop_le = f"Lớp {tuoi_lop_raw}"
-            elif 13 <= gia_tri_int <= 18:
-                tuoi_lop_hop_le = f"{tuoi_lop_raw} tuổi"
-            else:
-                is_lop = messagebox.askyesno(
-                    "Xác nhận Tuổi hay Lớp", 
-                    f"Bạn đã nhập số '{tuoi_lop_raw}'.\n\nĐây là LỚP hay TUỔI?\n- Chọn Yes: LỚP {tuoi_lop_raw}\n- Chọn No: {tuoi_lop_raw} TUỔI"
-                )
-                if is_lop:
-                    if 1 <= gia_tri_int <= 12:
-                        tuoi_lop_hop_le = f"Lớp {tuoi_lop_raw}"
-                    else:
-                        messagebox.showerror("Lỗi", "Lớp học chỉ từ lớp 1 đến lớp 12!")
-                        return None
-                else:
-                    if 6 <= gia_tri_int <= 18:
-                        tuoi_lop_hop_le = f"{tuoi_lop_raw} tuổi"
-                    else:
-                        messagebox.showerror("Lỗi", "Tuổi học sinh phải từ 6 đến 18!")
-                        return None
-        else:
-            try:
-                float(tuoi_lop_raw)
-                messagebox.showerror("Lỗi", "Tuổi/Lớp không được nhập số thập phân/âm!")
-                return None
-            except ValueError:
-                cac_so = re.findall(r'\d+', tuoi_lop_raw)
-                if cac_so:
-                    khoi_lop = int(cac_so[0])
-                    if 1 <= khoi_lop <= 12:
-                        tuoi_lop_hop_le = tuoi_lop_raw
-                    else:
-                        messagebox.showerror("Lỗi", "Lớp học chỉ từ lớp 1 đến lớp 12!")
-                        return None
-                else:
-                    messagebox.showerror("Lỗi", "Tuổi/Lớp không hợp lệ (Phải chứa số, vd: 10A1)!")
-                    return None
+
+        tuoi_lop_hop_le = tuoi_lop_raw
                     
         try:
             toan = float(self.entries["toan"].get().strip())
@@ -324,6 +340,7 @@ class ModernStudentTrackerGUI:
         hs_moi = self.lay_du_lieu_tu_form()
         if hs_moi:
             self.db.luu_hoc_sinh(hs_moi)
+            self._phat_am_thanh("success")
             messagebox.showinfo("Thành công", f"Đã thêm học sinh {hs_moi.ten}!")
             self.tai_du_lieu_len_bang()
             self.xoa_trang_form()
@@ -357,6 +374,7 @@ class ModernStudentTrackerGUI:
             return
         if messagebox.askyesno("Xác nhận", "Bạn có chắc chắn muốn xóa học sinh này không?"):
             self.db.xoa_hoc_sinh(self.selected_id)
+            self._phat_am_thanh("delete")
             messagebox.showinfo("Thành công", "Đã xóa học sinh!")
             self.tai_du_lieu_len_bang()
             self.xoa_trang_form()
