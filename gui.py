@@ -7,6 +7,11 @@ import sqlite3
 import os
 import random
 try:
+    from PIL import Image, ImageTk
+except ImportError:
+    Image, ImageTk = None, None
+
+try:
     from playsound import playsound
 except Exception:
     playsound = None
@@ -200,10 +205,23 @@ class ModernStudentTrackerGUI:
         threading.Thread(target=_play, daemon=True).start()
 
     def tao_khung_nhap_lieu(self):
+        if Image is not None and ImageTk is not None:
+            thu_muc_code = os.path.dirname(os.path.abspath(__file__))
+            logo_path = os.path.join(thu_muc_code, "images", "pngtree-user-icon-png-image_1796659.jpg")
+            if os.path.exists(logo_path):
+                try:
+                    img = Image.open(logo_path)
+                    img = img.resize((90, 90), Image.Resampling.LANCZOS)
+                    self.logo_img = ImageTk.PhotoImage(img)
+                    logo_lbl = tk.Label(self.left_frame, image=self.logo_img, bg=self.colors["panel"])
+                    logo_lbl.pack(pady=(10, 0))
+                except Exception as e:
+                    pass
+
         title_lbl = tk.Label(self.left_frame, text="THÔNG TIN HỌC SINH", 
                              bg=self.colors["panel"], fg=self.colors["text"], 
                              font=("Segoe UI", 16, "bold"))
-        title_lbl.pack(pady=(20, 20))
+        title_lbl.pack(pady=(10, 10))
 
         form_frame = tk.Frame(self.left_frame, bg=self.colors["panel"])
         form_frame.pack(fill=tk.BOTH, expand=True, padx=20)
@@ -220,17 +238,17 @@ class ModernStudentTrackerGUI:
 
         for i, (label_text, key) in enumerate(fields):
             lbl = tk.Label(form_frame, text=label_text, bg=self.colors["panel"], fg=self.colors["text"], font=("Segoe UI", 10, "bold"))
-            lbl.grid(row=i*2, column=0, sticky=tk.W, pady=(10, 2))
+            lbl.grid(row=i*2, column=0, sticky=tk.W, pady=(5, 2))
             
             if key == "tuoi_lop":
                 ent = ttk.Combobox(form_frame, font=("Segoe UI", 11), width=28, values=lop_options, state="readonly", style="Custom.TCombobox")
             else:
                 ent = ttk.Entry(form_frame, font=("Segoe UI", 11), width=30)
-            ent.grid(row=i*2+1, column=0, sticky=tk.W, ipady=5)
+            ent.grid(row=i*2+1, column=0, sticky=tk.W, ipady=3)
             self.entries[key] = ent
 
         btn_frame = tk.Frame(self.left_frame, bg=self.colors["panel"])
-        btn_frame.pack(fill=tk.X, pady=20, padx=20)
+        btn_frame.pack(fill=tk.X, pady=10, padx=20)
 
         def create_button(parent, text, bg_color, command):
             btn = tk.Button(parent, text=text, bg=bg_color, fg="white", 
